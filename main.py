@@ -24,7 +24,7 @@ def get_energy_mix(hour_data):
     energy_for_country = hour_data["Krajowe saldo wymiany międzysystemowej równoległej"].values[0] + hour_data["Krajowe saldo wymiany międzysystemowej nierównoległej"].values[0]
     green_energy_percentage = green_energy / (power_demand - (energy_for_country)) * 100
     return round(green_energy_percentage, 2)
- 
+
 @app.get("/")
 async def get(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
@@ -43,7 +43,7 @@ async def websocket_endpoint(websocket: WebSocket):
             # confirmation that client recived data, if there is no answer program stopped
             data = await asyncio.wait_for(websocket.receive_text(), timeout=5)
             print(data)
-            
+
             if (data.isnumeric()):
                 hour = int(data)
                 hour_data = bpkd_data.loc[bpkd_data['Godzina'] == hour]
