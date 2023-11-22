@@ -47,6 +47,7 @@
         #clock {
             width: 500px;
             height: 500px;
+            position: absolute;
         }
 
         #chart {
@@ -56,22 +57,38 @@
             margin-top: 20px; /* Add some space between the clock and the chart */
         }
 
+        #ring {
+            width: 700px;
+            height: 700px;
+        }
+
         .bar {
             flex-grow: 1;
             transition: all 0.5s;
         }
 
+        .bar-label {
+            text-align: center; /* Center text horizontally */
+            position: relative;
+            top: 50%; /* Position the top of the text halfway down the bar */
+            transform: translateY(-50%); /* Offset the text upwards by half of its own height */
+            margin: 0;
+            padding: 0;
+        }
+
         #green-energy-category {
-            background-color: #3498db;
+            background-color: #98FB98;
         }
 
         #brown-energy-category {
-            background-color: #e74c3c;
+            background-color: #FBEC50;
         }
     </style>
 </head>
 <body>
+    <div id="dateDisplay" style="text-align: center; font-size: 20px; margin-top: 20px;"></div>
     <div class="container">
+        <canvas id="ring" width="600" height="600"></canvas>
         <canvas id="clock" width="500" height="500"></canvas>
         <div id="hour"></div>
         <div id="minute"></div>
@@ -91,12 +108,12 @@
         function updateChart(energy_percentage) {
             const greenPercentage = document.getElementById("green-energy-category");
             const brownPercentage = document.getElementById("brown-energy-category");
-    
+                    
             greenPercentage.style.flexBasis = energy_percentage[0] + "%";
             brownPercentage.style.flexBasis = energy_percentage[1] + "%";
 
-            greenPercentage.querySelector(".bar-label").textContent = energy_percentage[0] + "%";
-            brownPercentage.querySelector(".bar-label").textContent = energy_percentage[1] + "%";
+            greenPercentage.querySelector(".bar-label").textContent = energy_percentage[0] + "% green energy";
+            brownPercentage.querySelector(".bar-label").textContent = energy_percentage[1] + "% brown energy";
 
         }
         
@@ -137,7 +154,97 @@
             }  
             return angle >= startAngle && angle <= endAngle;
         }
+
+        function drawSlider(ctx, radius) {
+            var centerX = ctx.canvas.width / 2;
+            var centerY = ctx.canvas.height / 2;
         
+            // Adjust the position of the slider to be on the ring's circumference
+            var x = centerX + radius * Math.cos(currentAngle);
+            var y = centerY + radius * Math.sin(currentAngle);
+        
+            // Draw slider handle
+            ctx.beginPath();
+            ctx.arc(x, y, 20, 0, 2 * Math.PI); // 20 is the radius of the handle
+            ctx.fillStyle = 'black'; // Color of the handle
+            ctx.fill();
+            ctx.closePath();
+
+
+            ctx.font = "30px Arial"; // Adjust the font size and style as needed
+            ctx.fillStyle = "white";
+            ctx.fillText("H", x-10, y+10);
+        }
+        
+
+        function drawRing() {
+            const canvas = document.getElementById("ring");
+            const ctx = canvas.getContext("2d");
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const radius = 260;
+            drawRingCircle(ctx, radius);
+            drawSlider(ctx, radius+10); 
+        }
+
+
+        function initializeRing() {
+            document.getElementById('ring').addEventListener('mousedown', function(event) {
+                isDragging = true;
+                currentAngle = getAngleFromMousePosition(event);
+                selectedArea = null; // Reset the selected area
+                updateChartVisibility();
+            });
+            
+            document.getElementById('ring').addEventListener('mousemove', function(event) {
+                if (isDragging) {
+                    currentAngle = getAngleFromMousePosition(event);
+                    drawRing(); 
+                    var hours = (currentAngle + Math.PI / 2) / (2 * Math.PI) * 12;
+                    hours = hours % 12; // Ensure hours are within 0 to 11
+            
+                    // Update the hour hand position
+                    const hourElement = document.getElementById("hour");
+                    const hourDeg = 90 + (hours / 12) * 360;
+                    hourElement.style.transform = `rotate(${hourDeg}deg)`;
+                }
+            });
+            
+            document.addEventListener('mouseup', function(event) {
+                if (isDragging) {
+                    isDragging = false;
+                    updateClock(); // Redraw the clock to fix the slider position
+                }
+            });
+        }
+
+        function getAngleFromMousePosition(event) {
+            var canvas = document.getElementById('ring');
+            var rect = canvas.getBoundingClientRect();
+            var x = event.clientX - rect.left - canvas.width / 2;
+            var y = event.clientY - rect.top - canvas.height / 2;
+        
+            // Calculate angle from the east (positive x-axis)
+            var angle = Math.atan2(y, x);
+        
+            // Normalize the angle to be within 0 to 2π range
+            if (angle < 0) {
+                angle += 2 * Math.PI;
+            }
+        
+            return angle;
+        }
+        
+
+        function drawRingCircle(ctx, radius) {
+            var centerX = ctx.canvas.width / 2;
+            var centerY = ctx.canvas.height / 2;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius + 10, 0, 2 * Math.PI); // Adjust radius for the ring
+            ctx.strokeStyle = 'black'; // Ring color
+            ctx.lineWidth = 1; // Width of the ring
+            ctx.stroke();
+            ctx.closePath();
+        }
 
         function drawClock(status) {
             const canvas = document.getElementById("clock");
@@ -192,6 +299,8 @@
                 for (let i = 0; i < sectionAngles.length; i++) {
                     const {x1, y1, x2, y2, startAngle, endAngle} = sectionAngles[i];
                     if (isPointInSector(mouseX, mouseY, centerX, centerY, radius, startAngle, endAngle)) {
+                        selectedArea = i + 1; 
+                        updateChartVisibility();
                         ws.send(i + 1);
                         ctx.lineWidth = 3;
                         ctx.beginPath();
@@ -227,33 +336,53 @@
             ws.send(message);
         }
 
+        function updateChartVisibility() {
+            const chartElement = document.getElementById("chart");
+            const greenPercentage = document.getElementById("green-energy-category");
+            if (selectedArea !== null & greenPercentage.querySelector(".bar-label").textContent !== "0%") {
+                chartElement.style.display = "flex"; // Show the chart
+            } else {
+                chartElement.style.display = "none"; // Hide the chart
+                greenPercentage.querySelector(".bar-label").textContent = "0%";
+            }
+        }
+
         function updateClock() {
             const hourElement = document.getElementById("hour");
             const minuteElement = document.getElementById("minute");
             const secondElement = document.getElementById("second");
 
-            currentTime = new Date();
-        
-            const hours = currentTime.getHours() % 12;
-            const minutes = currentTime.getMinutes();
-            const seconds = currentTime.getSeconds();
+            if (isDragging === false) {
+                currentTime = new Date();
+            
+                const hours = currentTime.getHours() % 12;
+                const minutes = currentTime.getMinutes();
+                const seconds = currentTime.getSeconds();
 
-            if (currentTime.getHours() != currentHour) {
-                currentHour = currentTime.getHours();
-                updateData(currentTime);
-            }
-        
-            const initialHourDeg = 90; 
-            const initialMinuteDeg = 90; 
-            const initialSecondDeg = 90;
-        
-            const hourDeg = initialHourDeg + ((hours / 12) * 360) + ((360 / 12) * (minutes / 60));
-            const minuteDeg = initialMinuteDeg + ((minutes / 60) * 360) + ((seconds/60)* (360/60));
-            const secondDeg = initialSecondDeg + ((seconds / 60) * 360);
-        
-            hourElement.style.transform = `rotate(${hourDeg}deg)`;
-            minuteElement.style.transform = `rotate(${minuteDeg}deg)`;
-            secondElement.style.transform = `rotate(${secondDeg}deg)`;
+                if (currentTime.getHours() != currentHour) {
+                    currentHour = currentTime.getHours();
+                    updateData(currentTime);
+                }
+            
+                const initialHourDeg = 90; 
+                const initialMinuteDeg = 90; 
+                const initialSecondDeg = 90;
+            
+                const hourDeg = initialHourDeg + ((hours / 12) * 360) + ((360 / 12) * (minutes / 60));
+                const minuteDeg = initialMinuteDeg + ((minutes / 60) * 360) + ((seconds/60)* (360/60));
+                const secondDeg = initialSecondDeg + ((seconds / 60) * 360);
+            
+                hourElement.style.transform = `rotate(${hourDeg}deg)`;
+                minuteElement.style.transform = `rotate(${minuteDeg}deg)`;
+                secondElement.style.transform = `rotate(${secondDeg}deg)`;
+
+                currentAngle = ((hours % 12 + minutes / 60) * (2 * Math.PI / 12)) - Math.PI / 2;
+
+                const dateElement = document.getElementById("dateDisplay");
+                dateElement.textContent = currentTime.toDateString();
+                updateChartVisibility();
+            } 
+            drawRing(currentAngle);
         }
         
 
@@ -271,15 +400,23 @@
             }
         }
 
+
+
+
+
         var ws = new WebSocket("ws://127.0.0.1:8000/ws");
         ws.onmessage = updateSite;
-        var currentHour = new Date().getHours();
-
+        var currentTime = new Date();
+        var currentHour = currentTime.getHours();
+        var currentAngle = 0;
+        var isDragging = false;
+        var selectedArea = null;
         // Update the clock every second
         setInterval(updateClock, 1000);
 
         // Initialize the clock
         updateClock();
+        initializeRing();
     </script>
 </body>
 </html>

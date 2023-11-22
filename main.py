@@ -66,7 +66,7 @@ async def websocket_endpoint(websocket: WebSocket):
         await websocket.send_text(color)
         while True:
             # confirmation that client recived data, if there is no answer program stopped
-            data = await asyncio.wait_for(websocket.receive_text(), timeout=5)
+            data = await asyncio.wait_for(websocket.receive_text(), timeout=1000)
 
             if data.isnumeric():
                 hour = int(data)
@@ -79,7 +79,6 @@ async def websocket_endpoint(websocket: WebSocket):
                 gs_data, bpkd_data = get_data(year, hour)
                 color = prepare_color(gs_data)
                 await websocket.send_text(color)
-            time.sleep(1)
     except Exception:
         print("Connection closed")
     finally:
