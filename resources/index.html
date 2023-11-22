@@ -102,20 +102,25 @@
         
 
         function getTimeMeridiem() {
-            var time_meridiem = [];
-            var currentTime = new Date();
-            var hour = currentTime.getHours();
+            var hour = currentHour;
+            console.log(hour);
+            var time_meridiem = new Array(12).fill(null);
         
-            for (var i = 0; i < 13; i++) {
-                if (hour < 12) {
-                    time_meridiem.push("am");
+            for (var i = 0; i <= 11; i++) {
+                hr_idx = (hour-1)%12;
+                if (hour%24 < 12) {
+                    console.log(hour, hr_idx, "am");
+                    time_meridiem[hr_idx] = "am";
                 } else {
-                    time_meridiem.push("pm");
+                    console.log(hour, hr_idx, "pm");
+                    time_meridiem[hr_idx] = "pm";
                 }
-        
-                hour = (hour + 1) % 24;
+                
+                hour = (hour+1 % 24) || 24;
             }
+            console.log(time_meridiem);
             return time_meridiem;
+
         }
 
         function isPointInSector(x, y, centerX, centerY, radius, startAngle, endAngle) {
@@ -142,7 +147,7 @@
             var radius = 200;
             const time_meridiem = getTimeMeridiem();
             const sectionAngles = [];
-        
+
             ctx.beginPath();
             ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
             ctx.stroke();
@@ -216,6 +221,12 @@
             });
         }
 
+        function updateData(time) {
+            const date = time.toISOString().split('T')[0].replace('-', '').replace('-', '');
+            const message = date + ";" + currentHour;
+            ws.send(message);
+        }
+
         function updateClock() {
             const hourElement = document.getElementById("hour");
             const minuteElement = document.getElementById("minute");
@@ -226,6 +237,11 @@
             const hours = currentTime.getHours() % 12;
             const minutes = currentTime.getMinutes();
             const seconds = currentTime.getSeconds();
+
+            if (currentTime.getHours() != currentHour) {
+                currentHour = currentTime.getHours();
+                updateData(currentTime);
+            }
         
             const initialHourDeg = 90; 
             const initialMinuteDeg = 90; 
@@ -257,7 +273,7 @@
 
         var ws = new WebSocket("ws://127.0.0.1:8000/ws");
         ws.onmessage = updateSite;
-        var currentTime = new Date();
+        var currentHour = new Date().getHours();
 
         // Update the clock every second
         setInterval(updateClock, 1000);
