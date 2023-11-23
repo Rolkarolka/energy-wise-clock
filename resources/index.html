@@ -201,12 +201,23 @@
                 wasDragged = true;
                 currentAngle = getAngleFromMousePosition(event);
                 selectedArea = null; // Reset the selected area
+                totalAngleChange = 0;
                 updateChartVisibility();
             });
             
             document.getElementById('ring').addEventListener('mousemove', function(event) {
                 if (isDragging) {
+                    var previousAngle = currentAngle;
                     currentAngle = getAngleFromMousePosition(event);
+                    var angleChange = currentAngle - previousAngle;
+                    // Adjust for crossing the 0 radians point
+                    if (angleChange > Math.PI) {
+                        angleChange -= 2 * Math.PI;
+                    } else if (angleChange < -Math.PI) {
+                        angleChange += 2 * Math.PI;
+                    }
+
+                    totalAngleChange += angleChange;
                     drawRing(); 
                     var hours = (currentAngle + Math.PI / 2) / (2 * Math.PI) * 12;
                     hours = hours % 12; // Ensure hours are within 0 to 11
@@ -221,12 +232,25 @@
             document.addEventListener('mouseup', function(event) {
                 if (isDragging) {
                     isDragging = false;
+                    if (Math.abs(totalAngleChange) >= 2 * Math.PI) {
+                        var fullCircles = Math.floor(Math.abs(totalAngleChange) / (2 * Math.PI));
+                        // Check direction of rotation and adjust the date
+                        if (totalAngleChange > 0) {
+                            currentTime.setDate(currentTime.getDate() + fullCircles); // Clockwise rotation, add a day
+
+                        } else {
+                            currentTime.setDate(currentTime.getDate() - fullCircles); // Counter-clockwise rotation, subtract a day
+                        }
+                        totalAngleChange = 0; // Reset the total angle change
+                    }
                     updateClock(); // Redraw the clock to fix the slider position
 
                     var hour = ((currentAngle + Math.PI / 2) / (2 * Math.PI)) * 12;
                     hour = Math.floor(hour) % 12 + 1; // Ensures hours are within 1 to 12
                     currentHour = hour;
                     updateData(currentTime);
+                    const dateElement = document.getElementById("dateDisplay");
+                    dateElement.textContent = currentTime.toDateString();
                 }
             });
         }
@@ -423,6 +447,7 @@
         var currentAngle = 0;
         var isDragging = false;
         var wasDragged = false;
+        var totalAngleChange = 0;
         var selectedArea = null;
         // Update the clock every second
         setInterval(updateClock, 1000);
