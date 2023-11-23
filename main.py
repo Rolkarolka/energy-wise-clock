@@ -79,6 +79,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 gs_data, bpkd_data = get_data(year, hour)
                 color = prepare_color(gs_data)
                 await websocket.send_text(color)
+            print(data)
     except Exception:
         print("Connection closed")
     finally:

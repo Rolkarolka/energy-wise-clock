@@ -94,6 +94,9 @@
         <div id="minute"></div>
         <div id="second"></div>
     </div>
+    <div id="resetButtonContainer" style="margin-top: 20px;">
+        <button id="resetButton" style="display: none;">Reset Dragged Status</button>
+    </div>
     <div id="chart">
         <div id="green-energy-category" class="bar">
             <div class="bar-label">0%</div>
@@ -116,26 +119,31 @@
             brownPercentage.querySelector(".bar-label").textContent = energy_percentage[1] + "% brown energy";
 
         }
+
+        function updateResetButtonVisibility() {
+            const resetButton = document.getElementById('resetButton');
+            if (wasDragged) {
+                resetButton.style.display = 'block';
+            } else {
+                resetButton.style.display = 'none';
+            }
+        }
         
 
         function getTimeMeridiem() {
             var hour = currentHour;
-            console.log(hour);
             var time_meridiem = new Array(12).fill(null);
         
             for (var i = 0; i <= 11; i++) {
                 hr_idx = (hour-1)%12;
                 if (hour%24 < 12) {
-                    console.log(hour, hr_idx, "am");
                     time_meridiem[hr_idx] = "am";
                 } else {
-                    console.log(hour, hr_idx, "pm");
                     time_meridiem[hr_idx] = "pm";
                 }
                 
                 hour = (hour+1 % 24) || 24;
             }
-            console.log(time_meridiem);
             return time_meridiem;
 
         }
@@ -171,9 +179,9 @@
             ctx.closePath();
 
 
-            ctx.font = "30px Arial"; // Adjust the font size and style as needed
+            ctx.font = "20px Arial"; // Adjust the font size and style as needed
             ctx.fillStyle = "white";
-            ctx.fillText("H", x-10, y+10);
+            ctx.fillText("H", x-7, y+7);
         }
         
 
@@ -190,6 +198,7 @@
         function initializeRing() {
             document.getElementById('ring').addEventListener('mousedown', function(event) {
                 isDragging = true;
+                wasDragged = true;
                 currentAngle = getAngleFromMousePosition(event);
                 selectedArea = null; // Reset the selected area
                 updateChartVisibility();
@@ -213,6 +222,11 @@
                 if (isDragging) {
                     isDragging = false;
                     updateClock(); // Redraw the clock to fix the slider position
+
+                    var hour = ((currentAngle + Math.PI / 2) / (2 * Math.PI)) * 12;
+                    hour = Math.floor(hour) % 12 + 1; // Ensures hours are within 1 to 12
+                    currentHour = hour;
+                    updateData(currentTime);
                 }
             });
         }
@@ -352,7 +366,7 @@
             const minuteElement = document.getElementById("minute");
             const secondElement = document.getElementById("second");
 
-            if (isDragging === false) {
+            if (wasDragged === false) {
                 currentTime = new Date();
             
                 const hours = currentTime.getHours() % 12;
@@ -383,6 +397,7 @@
                 updateChartVisibility();
             } 
             drawRing(currentAngle);
+            updateResetButtonVisibility();
         }
         
 
@@ -401,15 +416,13 @@
         }
 
 
-
-
-
         var ws = new WebSocket("ws://127.0.0.1:8000/ws");
         ws.onmessage = updateSite;
         var currentTime = new Date();
         var currentHour = currentTime.getHours();
         var currentAngle = 0;
         var isDragging = false;
+        var wasDragged = false;
         var selectedArea = null;
         // Update the clock every second
         setInterval(updateClock, 1000);
@@ -417,6 +430,11 @@
         // Initialize the clock
         updateClock();
         initializeRing();
+        updateResetButtonVisibility();
+        document.getElementById('resetButton').addEventListener('click', function() {
+            wasDragged = false;
+            updateResetButtonVisibility();
+        });
     </script>
 </body>
 </html>
