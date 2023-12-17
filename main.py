@@ -122,10 +122,8 @@ async def websocket_endpoint(websocket: WebSocket):
                 year, hour = data.split(";")
                 hour = int(hour)
                 gs_data, bpkd_data = get_data(year, hour)
-                print(gs_data, hour)
                 color = prepare_color(gs_data, hour)
                 await websocket.send_text(color)
-            print(data)
     except Exception as e:
         print(f"Connection closed {e}")
     finally:
