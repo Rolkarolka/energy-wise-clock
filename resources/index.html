@@ -21,19 +21,19 @@
         }
         
         #hour {
-            height: 10px;
-            width: 150px;
+            height: 8px;
+            width: 100px;
             background: black;
         }
 
         #minute {
-            height: 10px;
+            height: 7px;
             width: 150px;
-            background: #555;
+            background: dark;
         }
 
         #second {
-            height: 10px;
+            height: 3px;
             width: 150px;
             background: red;
         }
@@ -83,6 +83,12 @@
         #brown-energy-category {
             background-color: #FBEC50;
         }
+
+        #legend-zalecane-uzycie { background-color: #105E27; }
+        #legend-normalne-uzycie { background-color: #98FB98; }
+        #legend-wymagane-ograniczenie { background-color: #DC143C; }
+        #legend-zalecane-oszczedzanie { background-color: #FBEC50; }
+        #legend-brak { background-color: #ffffff; border: 1px solid #000000; }
     </style>
 </head>
 <body>
@@ -96,6 +102,13 @@
     </div>
     <div id="resetButtonContainer" style="margin-top: 20px;">
         <button id="resetButton" style="display: none;">Reset Dragged Status</button>
+    </div>
+    <div class="legend">
+        <div id="legend-zalecane-uzycie">ZALECANE UŻYTKOWANIE</div>
+        <div id="legend-normalne-uzycie">NORMALNE UŻYTKOWANIE</div>
+        <div id="legend-zalecane-oszczedzanie">ZALECANE OSZCZĘDZANIE</div>
+        <div id="legend-wymagane-ograniczenie">WYMAGANE OGRANICZANIE</div>
+        <div id="legend-brak">BRAK INFORMACJI</div>
     </div>
     <div id="chart">
         <div id="green-energy-category" class="bar">
@@ -290,6 +303,7 @@
         function drawClock(status) {
             const canvas = document.getElementById("clock");
             const ctx = canvas.getContext("2d");
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
             var centerX = canvas.width / 2;
             var centerY = canvas.height / 2;
             var radius = 200;

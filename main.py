@@ -109,8 +109,11 @@ async def websocket_endpoint(websocket: WebSocket):
 
             if data.isnumeric():
                 hour = int(data)
-                if not bpkd_data.empty and hour in bpkd_data['Godzina'].unique():
-                    hour_data = bpkd_data.loc[bpkd_data['Godzina'] == hour]
+                if not bpkd_data.empty:
+                    if hour in bpkd_data['Godzina'].unique():
+                        hour_data = bpkd_data.loc[bpkd_data['Godzina'] == hour]
+                    else:
+                        hour_data = bpkd_data.loc[bpkd_data['Godzina'] == hour+12]
                     green_energy_percentage = get_energy_mix(hour_data)
                     await websocket.send_text(f"e;{green_energy_percentage};{100-green_energy_percentage}")
                 else:
